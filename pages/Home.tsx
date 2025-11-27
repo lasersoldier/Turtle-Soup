@@ -4,15 +4,17 @@ import { storageService } from '../services/storageService';
 import { Puzzle } from '../types';
 import { Button } from '../components/Button';
 import { Modal } from '../components/Modal';
-import { Plus, Settings, Play, Trash2, Trophy, Languages, Edit2, LogOut } from 'lucide-react';
+import { Plus, Settings, Play, Trash2, Trophy, Languages, Edit2, LogOut, Shield, AlertCircle } from 'lucide-react';
 import { useLanguage } from '../contexts/LanguageContext';
 import { useAuth } from '../contexts/AuthContext';
+import { adminService } from '../services/adminService';
 
 export const Home: React.FC = () => {
   const navigate = useNavigate();
   const { language, setLanguage, t } = useLanguage();
-  const { signOut } = useAuth();
+  const { signOut, isAdmin, user, userRole } = useAuth();
   const [puzzles, setPuzzles] = useState<Puzzle[]>([]);
+  const [debugInfo, setDebugInfo] = useState<string>('');
 
   // Modal State
   const [deleteId, setDeleteId] = useState<string | null>(null);
@@ -20,7 +22,19 @@ export const Home: React.FC = () => {
   useEffect(() => {
     // Reload puzzles whenever language changes
     setPuzzles(storageService.getPuzzles(language));
-  }, [language]);
+    
+    // Debug: Show user permission info
+    if (user) {
+      const debugMessage = `用户: ${user.email}\n权限状态: ${userRole}\n是否为管理员: ${isAdmin}\nApp Metadata: ${JSON.stringify(user.app_metadata)}\nUser Metadata: ${JSON.stringify(user.user_metadata)}`;
+      setDebugInfo(debugMessage);
+      console.log('=== 用户权限调试信息 ===');
+      console.log('用户:', user);
+      console.log('当前角色:', userRole);
+      console.log('是否管理员:', isAdmin);
+      console.log('App Metadata:', user.app_metadata);
+      console.log('User Metadata:', user.user_metadata);
+    }
+  }, [language, user, userRole, isAdmin]);
 
   const handleDeleteClick = (e: React.MouseEvent, id: string) => {
     // Crucial: Stop propagation immediately
@@ -79,9 +93,22 @@ export const Home: React.FC = () => {
               <Languages className="w-4 h-4 mr-2" />
               {language === 'en' ? 'English' : '中文'}
             </Button>
-            <Button onClick={() => navigate('/create')} className="flex-1 md:flex-none">
-              <Plus className="w-4 h-4 mr-2" /> {t.createSoup}
-            </Button>
+            {isAdmin && (
+              <Button 
+                variant="ghost" 
+                onClick={() => navigate('/admin')} 
+                className="bg-amber-600 hover:bg-amber-700 text-white border border-amber-500"
+                title={language === 'zh' ? '管理员面板' : 'Admin Panel'}
+              >
+                <Shield className="w-4 h-4 mr-2" />
+                {language === 'zh' ? '管理' : 'Admin'}
+              </Button>
+            )}
+            {isAdmin && (
+              <Button onClick={() => navigate('/create')} className="flex-1 md:flex-none">
+                <Plus className="w-4 h-4 mr-2" /> {t.createSoup}
+              </Button>
+            )}
             <Button variant="secondary" onClick={() => navigate('/settings')} className="flex-1 md:flex-none">
               <Settings className="w-4 h-4 mr-2" /> {t.settings}
             </Button>
@@ -122,15 +149,17 @@ export const Home: React.FC = () => {
                   className="flex gap-2 relative z-30"
                   onClick={(e) => e.stopPropagation()} // Stop propagation for the container too
                 >
-                  <Button
-                    variant="secondary"
-                    size="sm"
-                    onClick={(e) => handleEditClick(e, puzzle.id)}
-                    className="h-8 w-8 p-0 hover:scale-110 transition-transform"
-                    title={language === 'zh' ? '编辑' : 'Edit'}
-                  >
-                    <Edit2 className="w-4 h-4" />
-                  </Button>
+                  {isAdmin && (
+                    <Button
+                      variant="secondary"
+                      size="sm"
+                      onClick={(e) => handleEditClick(e, puzzle.id)}
+                      className="h-8 w-8 p-0 hover:scale-110 transition-transform"
+                      title={language === 'zh' ? '编辑' : 'Edit'}
+                    >
+                      <Edit2 className="w-4 h-4" />
+                    </Button>
+                  )}
                   <Button
                     size="sm"
                     onClick={(e) => handlePlayClick(e, puzzle.id)}
@@ -139,15 +168,17 @@ export const Home: React.FC = () => {
                   >
                     <Play className="w-4 h-4 ml-0.5" />
                   </Button>
-                  <Button
-                    variant="danger"
-                    size="sm"
-                    onClick={(e) => handleDeleteClick(e, puzzle.id)}
-                    className="h-8 w-8 p-0 hover:scale-110 transition-transform"
-                    title={language === 'zh' ? '删除' : 'Delete'}
-                  >
-                    <Trash2 className="w-4 h-4" />
-                  </Button>
+                  {isAdmin && (
+                    <Button
+                      variant="danger"
+                      size="sm"
+                      onClick={(e) => handleDeleteClick(e, puzzle.id)}
+                      className="h-8 w-8 p-0 hover:scale-110 transition-transform"
+                      title={language === 'zh' ? '删除' : 'Delete'}
+                    >
+                      <Trash2 className="w-4 h-4" />
+                    </Button>
+                  )}
                 </div>
               </div>
             </div>
@@ -160,6 +191,17 @@ export const Home: React.FC = () => {
             </div>
           )}
         </div>
+
+        {/* Debug Info Panel */}
+        {debugInfo && (
+          <div className="fixed bottom-4 right-4 bg-red-900 border border-red-700 rounded-lg p-4 max-w-md text-xs text-red-100">
+            <div className="flex items-center gap-2 mb-2">
+              <AlertCircle className="w-4 h-4" />
+              <span className="font-bold">调试信息</span>
+            </div>
+            <pre className="whitespace-pre-wrap break-words">{debugInfo}</pre>
+          </div>
+        )}
       </div>
     </div>
   );

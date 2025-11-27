@@ -276,5 +276,30 @@ export const storageService = {
     } catch (err) {
       console.error('Error marking puzzle played remote:', err);
     }
+  },
+
+  // 获取所有用户设置（管理员功能）
+  getAllSettings: async () => {
+    try {
+      // 这个方法在实际环境中需要管理员权限
+      // 目前我们只返回模拟数据
+      return {
+        'admin@admin.com': {
+          apiKey: 'sk-***',
+          provider: 'google',
+          model: 'gemini-2.5-flash',
+          deepseekModel: 'deepseek-chat'
+        },
+        'demo@example.com': {
+          apiKey: '',
+          provider: 'google',
+          model: 'gemini-2.5-flash',
+          deepseekModel: 'deepseek-chat'
+        }
+      };
+    } catch (error) {
+      console.error('Error getting all settings:', error);
+      return {};
+    }
   }
 };
